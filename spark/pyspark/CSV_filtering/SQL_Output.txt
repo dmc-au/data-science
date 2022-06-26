@@ -1,0 +1,17 @@
+Northern Sydney,X760,2020-03-27,44
+South Eastern Sydney,X720,2020-03-27,41
+Western Sydney,X740,2020-03-29,24
+Hunter New England,X800,2020-03-28,22
+South Western Sydney,X710,2020-03-27,18
+Sydney,X700,2020-03-29,16
+Central Coast,X770,2020-03-27,15
+Illawarra Shoalhaven,X730,2020-03-27,14
+Nepean Blue Mountains,X750,2020-03-27,10
+Mid North Coast,X820,2020-03-28,7
+Southern NSW,X830,2020-03-27,6
+Northern NSW,X810,2020-03-27,5
+Northern NSW,X810,2020-03-30,5
+Murrumbidgee,X840,2020-03-30,5
+Western NSW,X850,2020-03-27,4
+Far West,X860,2020-03-31,1
+Far West,X860,2020-04-02,1
