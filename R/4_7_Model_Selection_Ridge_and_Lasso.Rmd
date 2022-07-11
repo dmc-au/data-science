@@ -1,0 +1,205 @@
+---
+title: "Model Selection: Ridge and Lasso"
+output: html_notebook
+---
+
+## Task
+
+https://edstem.org/au/courses/7175/lessons/16388/slides/125920
+
+The BigMac2003 data set can be found in the package alr4 in R (source: Cook and Weisberg, “Applied Regression Including Computing and Graphics,” Wiley, 1999)
+
+The Big Mac hamburger is a simple commodity that can be used to study the inefficiency in currency exchange, see an article in the Economist.
+
+(a) Confirm that a log-transformation is appropriate for all variables which are measured in units of currency (minutes of labor).
+
+(b) Assume the log-price of a BigMac as the response and carry out a best-subset linear regression analysis.
+
+Compute the AIC, BIC, five- and tenfold cross-validation of prediction error for the best model and the full model. Discuss the results. (Hint: you may use the package "bestglm".)
+
+(c) Compare the diagnostic plots for the chosen model and the full model, e.g. by overlaying each plot. Which cities are most influential for the fits? Are there any outliers? 
+
+(d) Assuming that it is unknown, give a confidence interval and a prediction interval for the price of a BigMac in Sydney. Which model do you suggest using for the prediction?
+
+## Solution
+
+First, we'll load all of the library and have a quick look at the data
+```{r}
+require(alr4)
+
+data(BigMac2003)
+head(BigMac2003)
+```
+
+
+# A)
+I'm not sure what the question is asking. But the solution has log transformed all currency variables as per (b) below.
+
+# B)
+
+Transform the currency variables to log(price) format.
+```{r}
+data=BigMac2003
+data$BigMac=log(data$BigMac)
+data$Bread=log(data$Bread)
+data$Rice=log(data$Rice)
+data$Bus=log(data$Bus)
+data$Apt=log(data$Apt)
+data$TeachGI=log(data$TeachGI)
+data$TeachNI=log(data$TeachNI)
+pairs(data) # Prints the plot
+```
+
+First we manipulate the data. Not sure what purpose this particular modification serves.
+```{r}
+require(bestglm)
+
+# The following seems to move column 1 (BigMac) to the back.
+xy = data[, c(2:10,1)]
+xy
+```
+
+Now we run bestglm, using AIC as the criteria. The output is predictor selections for the best 5 models.
+```{r}
+bestfits = bestglm(xy, IC="AIC")
+bestfits$BestModels
+```
+
+Now we fit the GLM using the predictors listed with the lowest criterion value (first row of table above). Not sure what the criterion number refers to.
+```{r}
+fit = glm(BigMac ~ Bread+Rice+FoodIndex+TeachGI, data=data)
+fit2 = glm(BigMac ~ ., data=data) # The full model
+```
+
+We compare the AIC and BIC of the GLM and the full model.
+```{r}
+AIC(fit)
+BIC(fit)
+AIC(fit2)
+BIC(fit2)
+```
+
+Then we calculate the cross-validation errors using 'cv.glm()' under both 5 and 10 folds for the full model.
+```{r}
+require(boot)
+set.seed(1)
+cv = cv.glm(data=data, glmfit=fit, K=5)
+
+set.seed(1)
+cv2 = cv.glm(data=data, glmfit=fit, K=10)
+
+cv$delta
+cv2$delta
+```
+
+We can investigate the same for the full model.
+
+```{r}
+require(boot)
+set.seed(1)
+cv3 = cv.glm(data=data, glmfit=fit2, K=5)
+
+set.seed(1)
+cv4 = cv.glm(data=data, glmfit=fit2, K=10)
+
+cv3$delta
+cv4$delta
+```
+
+Based on the results above, the model with its 4 predictors has improved the AIC, BIC, and CV error compared against the full model.
+
+# C)
+
+Diagnostics are plot for the chosen model and the full model.
+
+```{r}
+par(mfrow=c(1,2))
+plot(fit, which=1, main="best model")
+plot(fit2, which=1, main="full model")
+```
+
+The plots are fairly similar, and do not suggest any specifc trend. Additionally, residuals and fitted values seem to be uncorrelated.
+
+```{r}
+par(mfrow=c(1,2))
+plot(fit, which=2, main="best model")
+plot(fit2, which=2, main="full model")
+```
+
+The QQ plot seems improved for the 4-factor model. It seems more linear with improved fit in the tails. It also appears that Miami, Shanghai and Nairobi might slightly be influencing the fit by outliers.
+
+```{r}
+par(mfrow=c(1,2))
+plot(fit, which=3, main="best model")
+plot(fit2, which=3, main="full model")
+```
+
+The scale-location plot is similar for both cases. There is a chance that the fit could be improved by introducing nonlinearity in the model. Miami, Shanghai and Nairobi are again outlier candidates.
+
+```{r}
+par(mfrow=c(1,2))
+plot(fit, which=4, main="best model")
+plot(fit2, which=4, main="full model")
+```
+
+Again the outliers seem present, with the addition of Mexico City in the full model.
+
+```{r}
+par(mfrow=c(1,2))
+plot(fit, which=5, main="best model")
+plot(fit2, which=5, main="full model")
+```
+
+In general, the conclusion from the diagnostic plots could be that there is no need for the model with more than four predictors.
+
+# D)
+
+We pull the Sydney data row from the table for reference, but without the price.
+```{r}
+newdata = data.frame(data[61,2:10])
+newdata
+```
+
+The following is the predicted value the 4-factor model would give us.
+```{r}
+pi1 <- predict(fit, newdata, interval="predict")
+pi1
+##            fit      lwr      upr
+## Sydney 2.96614 2.343537 3.588744
+```
+
+Now we check the confidence interval.
+```{r}
+predict(fit, newdata, interval="confidence")
+##            fit      lwr      upr
+## Sydney 2.96614 2.836003 3.096278
+```
+
+For the full model the predicted value is:
+```{r}
+pi2 <- predict(fit2, newdata, interval="predict")
+pi2
+##             fit      lwr      upr
+## Sydney 2.950955 2.315047 3.586864
+```
+
+With confidence interval:
+```{r}
+predict(fit2, newdata, interval="confidence")
+##             fit      lwr      upr
+## Sydney 2.950955 2.795065 3.106846
+```
+
+The range for the 4-factor model prediction should be given by the function below. For some reason it's not giving the interval. Proper output is in comments.
+```{r}
+pi1[,3] = pi1[,2]
+## [1] 1.245207
+```
+
+And for the full model.
+```{r}
+pi2[,3] - pi2[,2]
+## [1] 1.271817
+```
+
+The prediction interval is narrower for the full model, which would suggest that this model is more suitable for prediction.
