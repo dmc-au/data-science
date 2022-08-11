@@ -1,0 +1,42 @@
+---
+title: "Week 1.4 Estimation Procedure"
+output: html_notebook
+---
+
+https://edstem.org/au/courses/7175/lessons/16592/slides/119323
+
+We're examining "a dataset including lifetimes (times to failure in hours) of Kevlar epoxy strand pressure vessels at 70\%70% stress level. (see Andrews and Herzberg, 1985.)"
+
+
+```{r}
+pressure <- c(1051, 1337, 1389, 1921, 1942, 2322, 3629, 4006, 4012, 
+              4063, 4921, 5445, 5620, 5817, 5905, 5956, 6068, 6121, 
+              6473, 7501, 7886, 8108, 8546, 8666, 8831, 9106, 9711, 
+              9806, 10205, 10396, 10861, 11026, 11214, 11362, 11604,
+              11608, 11745, 11762, 11895, 12044, 13520, 13670, 14110, 
+              14496, 15395, 16179, 17092, 17568, 17568)
+```
+
+We'll first look at the data in a histogram
+
+```{r}
+hist(pressure, nclass=17, xlim=c(0,20000), xlab="Time to failure (hours)")
+dev.copy2pdf(file="lect2_pressures.pdf", height=4, width=8)
+```
+
+We're determining the MLE of the Weibull scale parameter (theta).
+The shape parameter (lambda) is fixed as 2.
+
+$$
+MLE: \hat\theta = \bigg(\frac{\sum_{i=1}^{N}y_i^\lambda}{N}\bigg)^\frac{1}{\lambda} = 9,892.177
+$$
+
+```{r}
+theta.hat <- function(y, lambda){
+  ( sum(y^lambda) / length(y) )^(1/lambda)
+}
+
+theta.hat(y=pressure, lambda=2)
+```
+
+So the MLE for theta given lambda = 2 is 9892.177, which is a point estimate.

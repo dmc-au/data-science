@@ -1,0 +1,58 @@
+---
+title: "Polynomial Regression and Step functions"
+output: html_notebook
+---
+
+"In this activity, you will further analyse the Wage data set. Perform polynomial regression to predict wage using age. Use cross-validation to select the optimal degree, d, for the polynomial. What degree was chosen, and how does this compare to the results of hypothesis testing using ANOVA? Make a plot of the resulting polynomial fit to the data."
+
+First we perform polynomial regression for various polynomial degrees.
+
+```{r}
+library(ISLR)
+library(boot)
+
+set.seed(1)
+
+cv_error = rep(0,10) # Initialises a length-10 vector of 0s
+
+data('Wage')
+attach(Wage)
+
+for(i in 1:10){
+  glm_fit = glm(wage ~ poly(age, i), data=Wage) # Polynomial model with i degrees
+  cv_error[i] = cv.glm(Wage, glm_fit, K=10)$delta[1]
+}
+```
+
+Now we plot the cross-validation errors:
+
+```{r}
+plot(
+  1:10, cv_error, pch=19, type='b', xlab='degree of polynomial',
+  ylab='CV estimate of the prediction error'
+)
+```
+
+The minimal CV-error corresponds to the degree of the polynomial equal to 9:
+
+```{r}
+min_error = which.min(cv_error)
+min_error
+```
+Thus, the model with the least CV-error is:
+
+```{r}
+min_model = glm(wage ~ poly(age, min_error), data=Wage)
+```
+
+We plot this model.
+
+```{r}
+plot(Wage$age, Wage$wage)
+
+r = range(Wage$age)
+a_predict = seq(from=r[1], to=r[2], length.out=100) # 100 points in the range of age
+w_predict = predict(min_model, newdata=list(age=a_predict)) # 100 response predictions
+lines(a_predict, w_predict, col='red') # Line connecting w_predict values together
+```
+

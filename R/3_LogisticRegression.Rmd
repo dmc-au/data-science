@@ -1,0 +1,108 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## Part 1
+
+What is our goal? We want to model senlity (s)(binary) with a logistic regression against WAIS score (x). We've grouped the observations with 'summaryBy' because we have some observations with the same WAIS score.
+
+```{r}
+library(dobson)
+library(doBy)
+sen.grp <- summaryBy(s~x, data=senility, FUN=c(sum, length))
+names(sen.grp) <- c("x","y","n")
+```
+
+The 'cbind' function creates a 2*n matrix containing the number of senility counts in the first column for a WAIS score, and the non-senility count in the second column. Not sure why.
+```{r}
+cbind(sen.grp$y, sen.grp$n - sen.grp$y)
+```
+
+Next we set up the generalised linear model of the matrix as described above as a function of x, the WAIS score.
+```{r}
+senility.grp <- glm(cbind(y, n - y) ~ x, data=sen.grp, family=binomial)
+```
+
+Then we have a look at the high level summary of the model.
+```{r}
+summary(senility.grp)
+```
+
+------
+
+## Part 2
+
+Now we want to test the fit of the model, by looking at the Pearson Chi^2 and Deviance statistics
+
+For calculating the Chi^2, we first calculate the critical value:
+```{r}
+crit.val <- qchisq(0.95, df=nrow(sen.grp)-2)
+```
+
+Then we can do a little programming to test the residuals
+```{r}
+P.res <- residuals(senility.grp, type = "pearson")
+if(sum(P.res^2) > crit.val){
+  cat("We reject the null hypothesis that the model is correct")
+}else{
+  cat("We cannot reject the null hypothesis that the model is correct")
+}
+```
+
+No luck so far, so we try the Deviance statistic
+
+```{r}
+D.res <- residuals(senility.grp, type = "deviance")
+if(sum(D.res^2) > crit.val){
+  cat("We reject the null hypothesis that the model is correct")
+}else{
+  cat("We cannot reject the null hypothesis that the model is correct")
+}
+```
+
+Bad news by the looks.
+
+Next we reproduce a table from the textbook for some reason...
+```{r}
+cbind(sen.grp, senility.grp$fitted.values, P.res, D.res)
+```
+
+Now we look at the standardised residuals (Pearson and Deviance) as function of the WAIS score.
+```{r}
+stanresPearson <- P.res/sqrt(1-hatvalues(senility.grp))
+stanresDeviance <- D.res/sqrt(1-hatvalues(senility.grp))
+
+# Alternative for diagonal elements of hat matrix:
+# influence(senility.grp)$hat
+
+plot(sen.grp$x,stanresDeviance, ylab="Standardized Deviance Residuals",
+     xlab="WAIS score", ylim=c(-2,2))
+plot(sen.grp$x,stanresPearson, ylab="Standardized Pearson Residuals",
+     xlab="WAIS score", ylim=c(-2,2))
+```
+
+Looks like the residuals are the same for both of the tests, and that there are a couple of potential outliers? No answer given.
+
+Now we try the Hosmer-Lemeshow statistic with the use of the 'ResourceSelection' library in R.
+```{r}
+library(ResourceSelection)
+res.glm <- glm(s~x, data=senility, family="binomial")
+h <- hoslem.test(senility$s,fitted(res.glm),g=3)
+h$expected
+```
+
+Here are some more statistics
+```{r}
+h$observed
+```
+
+```{r}
+h$statistic
+```
+
+```{r}
+h$p.value
+```
+
+"The p-value is above $\alpha = 0.05$, so at the 5% level of significance the null hypothesis that the observed and expected proportions are the same across all doses cannot be rejected (evidence of a good fit from the model)."
